@@ -21,6 +21,8 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 
+I2C_HandleTypeDef hi2c1;
+
 /** @addtogroup STM32F0xx_HAL_Examples
   * @{
   */
@@ -48,6 +50,7 @@ static void Error_Handler(void);
   */
 int main(void)
 {
+  __HAL_RCC_I2C1_CLK_ENABLE();  // In your initialization code
   /* This sample code shows how to use GPIO HAL API to toggle LED3, LED4, LED5 and LED6 IOs
     in an infinite loop. */
 
@@ -91,18 +94,87 @@ int main(void)
   /* -3- Toggle IOs in an infinite loop */
   while (1)
   {
-    HAL_GPIO_TogglePin(LED3_GPIO_PORT, LED3_PIN);
-    /* Insert delay 100 ms */
-    HAL_Delay(1000);
-    HAL_GPIO_TogglePin(LED4_GPIO_PORT, LED4_PIN);
-    /* Insert delay 100 ms */
-    HAL_Delay(100);
-    HAL_GPIO_TogglePin(LED5_GPIO_PORT, LED5_PIN);
-    /* Insert delay 100 ms */
-    HAL_Delay(100);
-    HAL_GPIO_TogglePin(LED6_GPIO_PORT, LED6_PIN);
-    /* Insert delay 100 ms */
-    HAL_Delay(100);
+     // Reset OLED
+    ssd1306_Reset();
+
+    // Wait for the screen to boot
+    // HAL_Delay(100);
+
+    // Init OLED
+    // ssd1306_SetDisplayOn(1);
+    
+
+    // ssd1306_WriteCommand(0x20); //Set Memory Addressing Mode
+    // ssd1306_WriteCommand(0x00); // 00b,Horizontal Addressing Mode; 01b,Vertical Addressing Mode;
+    //                             // 10b,Page Addressing Mode (RESET); 11b,Invalid
+
+    // ssd1306_WriteCommand(0xB0); //Set Page Start Address for Page Addressing Mode,0-7
+
+    // ssd1306_WriteCommand(0xC8); //Set COM Output Scan Direction
+    
+    // ssd1306_WriteCommand(0x00); //---set low column address
+    // ssd1306_WriteCommand(0x10); //---set high column address
+
+    // ssd1306_WriteCommand(0x40); //--set start line address - CHECK
+
+    // ssd1306_SetContrast(0xFF);
+
+    // ssd1306_WriteCommand(0xA1); //--set segment re-map 0 to 127 - CHECK
+    // ssd1306_WriteCommand(0xA6); //--set normal color
+    // ssd1306_WriteCommand(0xA8); //--set multiplex ratio(1 to 64) - CHECK
+    // ssd1306_WriteCommand(0x3F); //
+
+    // ssd1306_WriteCommand(0xA4); //0xa4,Output follows RAM content;0xa5,Output ignores RAM content
+
+    // ssd1306_WriteCommand(0xD3); //-set display offset - CHECK
+    // ssd1306_WriteCommand(0x00); //-not offset
+
+    // ssd1306_WriteCommand(0xD5); //--set display clock divide ratio/oscillator frequency
+    // ssd1306_WriteCommand(0xF0); //--set divide ratio
+
+    // ssd1306_WriteCommand(0xD9); //--set pre-charge period
+    // ssd1306_WriteCommand(0x22); //
+
+    // ssd1306_WriteCommand(0xDA); //--set com pins hardware configuration - CHECK
+    // ssd1306_WriteCommand(0x12);
+
+    // ssd1306_WriteCommand(0xDB); //--set vcomh
+    // ssd1306_WriteCommand(0x20); //0x20,0.77xVcc
+
+    // ssd1306_WriteCommand(0x8D); //--set DC-DC enable
+    // ssd1306_WriteCommand(0x14); //
+    // ssd1306_SetDisplayOn(1); //--turn on SSD1306 panel
+
+    // // Clear screen
+    // memset(SSD1306_Buffer, 0x00, sizeof(SSD1306_Buffer));
+    
+    // // Flush buffer to screen
+    // for(uint8_t i = 0; i < 8; i++) {
+    //     ssd1306_WriteCommand(0xB0 + i); // Set the current RAM page address.
+    //     ssd1306_WriteCommand(0x00);
+    //     ssd1306_WriteCommand(0x10);
+    //     ssd1306_WriteData(&SSD1306_Buffer[128*i],128);
+    // }
+    
+    // // Set default values for screen object
+    // SSD1306.CurrentX = 0;
+    // SSD1306.CurrentY = 0;
+    
+    // SSD1306.Initialized = 1;
+
+    
+    // HAL_GPIO_TogglePin(LED3_GPIO_PORT, LED3_PIN);
+    // /* Insert delay 100 ms */
+    // HAL_Delay(1000);
+    // HAL_GPIO_TogglePin(LED4_GPIO_PORT, LED4_PIN);
+    // /* Insert delay 100 ms */
+    // HAL_Delay(100);
+    // HAL_GPIO_TogglePin(LED5_GPIO_PORT, LED5_PIN);
+    // /* Insert delay 100 ms */
+    // HAL_Delay(100);
+    // HAL_GPIO_TogglePin(LED6_GPIO_PORT, LED6_PIN);
+    // /* Insert delay 100 ms */
+    // HAL_Delay(100);
   }
 }
 
