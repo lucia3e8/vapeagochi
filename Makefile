@@ -13,9 +13,10 @@ BUILD_DIR = build
 SRC_DIR = Src
 INC_DIR = Inc
 STARTUP_DIR = SW4STM32
-CUBE_DIR = /home/bmc/Downloads/STM32Cube_FW_F0_V1.11.0
+CUBE_DIR = /home/bmc/sources/vapeagochi/vendor/STM32Cube_FW_F0_V1.11.0
 HAL_SRC_DIR = $(CUBE_DIR)/Drivers/STM32F0xx_HAL_Driver/Src
 LINKER_SCRIPT = $(STARTUP_DIR)/STM32F072B-Discovery/STM32F072RBTx_FLASH.ld
+SSD1306_DIR = /home/bmc/sources/vapeagochi/vendor/stm32-ssd1306
 
 # MCU flags
 CPU = -mcpu=cortex-m0
@@ -28,6 +29,8 @@ CFLAGS += -O2
 CFLAGS += -DSTM32F072xB
 CFLAGS += -DUSE_HAL_DRIVER
 CFLAGS += -I$(INC_DIR)
+CFLAGS += -Issd1306
+CFLAGS += -I$(SSD1306_DIR)/ssd1306
 CFLAGS += -I$(CUBE_DIR)/Drivers/STM32F0xx_HAL_Driver/Inc
 CFLAGS += -I$(CUBE_DIR)/Drivers/CMSIS/Device/ST/STM32F0xx/Include
 CFLAGS += -I$(CUBE_DIR)/Drivers/CMSIS/Include
@@ -41,10 +44,13 @@ LDFLAGS += -Wl,--gc-sections
 
 # Source files
 SRC = $(wildcard $(SRC_DIR)/*.c)
+SSD1306_SRC = $(wildcard $(SSD1306_DIR)/ssd1306/*.c)
 ASM = $(STARTUP_DIR)/startup_stm32f072xb.s
 
 # HAL source files
 HAL_SRC = $(HAL_SRC_DIR)/stm32f0xx_hal.c
+HAL_SRC += $(HAL_SRC_DIR)/stm32f0xx_hal_i2c.c
+HAL_SRC += $(HAL_SRC_DIR)/stm32f0xx_hal_i2c_ex.c
 HAL_SRC += $(HAL_SRC_DIR)/stm32f0xx_hal_cortex.c
 HAL_SRC += $(HAL_SRC_DIR)/stm32f0xx_hal_gpio.c
 HAL_SRC += $(HAL_SRC_DIR)/stm32f0xx_hal_rcc.c
@@ -53,6 +59,7 @@ HAL_SRC += $(HAL_SRC_DIR)/stm32f0xx_hal_rcc_ex.c
 # Object files
 OBJ = $(SRC:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
 OBJ += $(HAL_SRC:$(HAL_SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
+OBJ += $(SSD1306_SRC:$(SSD1306_DIR)/ssd1306/%.c=$(BUILD_DIR)/%.o)
 OBJ += $(BUILD_DIR)/startup_stm32f072xb.o
 
 # Build rules
@@ -63,6 +70,10 @@ $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
 	$(CC) -c $(CFLAGS) $< -o $@
 
 $(BUILD_DIR)/%.o: $(HAL_SRC_DIR)/%.c
+	@mkdir -p $(BUILD_DIR)
+	$(CC) -c $(CFLAGS) $< -o $@
+
+$(BUILD_DIR)/%.o: $(SSD1306_DIR)/ssd1306/%.c
 	@mkdir -p $(BUILD_DIR)
 	$(CC) -c $(CFLAGS) $< -o $@
 
