@@ -23,7 +23,10 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f0xx_hal.h"
+#include "stm32f0xx_hal_dma.h"
+#include "stm32f0xx_hal_i2c.h"
 #include "stm32f072b_discovery.h"
+#include "ssd1306.h"
 
 /* Exported types ------------------------------------------------------------*/
 /* Exported constants --------------------------------------------------------*/
