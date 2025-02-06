@@ -43,12 +43,12 @@
   * @brief RTC MSP Initialization
   *        This function configures the hardware resources used in this example
   * @param hrtc: RTC handle pointer
-  * 
-  * @note  Care must be taken when HAL_RCCEx_PeriphCLKConfig() is used to select 
-  *        the RTC clock source; in this case the Backup domain will be reset in  
-  *        order to modify the RTC Clock source, as consequence RTC registers (including 
+  *
+  * @note  Care must be taken when HAL_RCCEx_PeriphCLKConfig() is used to select
+  *        the RTC clock source; in this case the Backup domain will be reset in
+  *        order to modify the RTC Clock source, as consequence RTC registers (including
   *        the backup registers) and RCC_BDCR register are set to their reset values.
-  *             
+  *
   * @retval None
   */
 void HAL_RTC_MspInit(RTC_HandleTypeDef *hrtc)
@@ -56,9 +56,9 @@ void HAL_RTC_MspInit(RTC_HandleTypeDef *hrtc)
   RCC_OscInitTypeDef RCC_OscInitStruct;
   RCC_PeriphCLKInitTypeDef  PeriphClkInitStruct;
 
-  /*##-1- Configue LSE as RTC clock soucre ###################################*/ 
+  /*##-1- Configue LSE as RTC clock soucre ###################################*/
 #ifdef RTC_CLOCK_SOURCE_LSE
-    
+
   RCC_OscInitStruct.OscillatorType =  RCC_OSCILLATORTYPE_LSI | RCC_OSCILLATORTYPE_LSE;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
   RCC_OscInitStruct.LSEState = RCC_LSE_ON;
@@ -67,7 +67,7 @@ void HAL_RTC_MspInit(RTC_HandleTypeDef *hrtc)
   {
 	  Error_Handler();
   }
-  
+
   PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_RTC;
   PeriphClkInitStruct.RTCClockSelection = RCC_RTCCLKSOURCE_LSE;
   if(HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK)
