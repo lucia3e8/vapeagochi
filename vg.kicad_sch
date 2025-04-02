@@ -6078,6 +6078,16 @@
 		)
 		(uuid "5fd30f25-3121-4ee8-afeb-7d675e0c8238")
 	)
+	(wire
+		(pts
+			(xy 134.62 53.34) (xy 152.4 53.34)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "6232f770-5422-4afe-a639-71349f466f15")
+	)
 	(polyline
 		(pts
 			(xy 283.21 165.1) (xy 175.26 165.1)
@@ -6740,6 +6750,16 @@
 	)
 	(wire
 		(pts
+			(xy 147.32 55.88) (xy 152.4 55.88)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "dc2e47e4-7ba8-4377-b838-564415bf3886")
+	)
+	(wire
+		(pts
 			(xy 146.05 154.94) (xy 148.59 154.94)
 		)
 		(stroke
@@ -7077,17 +7097,6 @@
 		)
 		(uuid "abd5563c-ad4b-463a-815d-0266bc5fe051")
 	)
-	(text "SDD1306 module"
-		(exclude_from_sim no)
-		(at 148.336 44.45 0)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left bottom)
-		)
-		(uuid "bf5e9f31-68e5-47a9-b86b-3f12c198acc9")
-	)
 	(text "MCU and RBG LED"
 		(exclude_from_sim no)
 		(at 54.61 81.28 0)
@@ -7272,6 +7281,26 @@
 			)
 		)
 	)
+	(global_label "SCREEN_DC"
+		(shape input)
+		(at 152.4 43.18 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right)
+		)
+		(uuid "1e0da826-5e15-4ebd-821b-06e20ce77aa0")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 152.4 43.18 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+	)
 	(global_label "HEAT_IN"
 		(shape input)
 		(at 102.87 154.94 0)
@@ -7306,6 +7335,26 @@
 		(uuid "2a0c2620-642c-40db-b4c2-8aa573f51931")
 		(property "Intersheetrefs" "${INTERSHEET_REFS}"
 			(at 69.85 170.18 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+	)
+	(global_label "SCREEN_RES"
+		(shape input)
+		(at 152.4 45.72 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right)
+		)
+		(uuid "2b314511-86b8-4334-8c9d-aec9591dadbe")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 152.4 45.72 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -7656,6 +7705,26 @@
 			)
 		)
 	)
+	(global_label "SCREEN_CS"
+		(shape input)
+		(at 152.4 40.64 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right)
+		)
+		(uuid "8af4e2ea-b03d-49bc-b18a-8f57d10fa135")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 152.4 40.64 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+	)
 	(global_label "LED"
 		(shape input)
 		(at 102.87 147.32 0)
@@ -7880,6 +7949,26 @@
 			)
 		)
 	)
+	(global_label "SCREEN_DIN"
+		(shape input)
+		(at 152.4 48.26 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right)
+		)
+		(uuid "c2690d61-e189-458f-aa5b-85b1232bac57")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 152.4 48.26 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+	)
 	(global_label "VBATT_ANA"
 		(shape input)
 		(at 69.85 144.78 180)
@@ -7994,6 +8083,26 @@
 		(uuid "d73ea8dc-7cd3-49b2-92b3-39141c4c0ea7")
 		(property "Intersheetrefs" "${INTERSHEET_REFS}"
 			(at 190.5 44.45 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+	)
+	(global_label "SCREEN_CLK"
+		(shape input)
+		(at 152.4 50.8 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right)
+		)
+		(uuid "dbe41b01-07b8-4ed9-b1b2-ec23fbcb827f")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 152.4 50.8 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -12057,7 +12166,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "Connector_PinHeader_2.54mm:PinHeader_1x08_P2.54mm_Horizontal"
+		(property "Footprint" "Connector_PinHeader_2.54mm:PinHeader_1x08_P2.54mm_Vertical"
 			(at 157.48 25.4 0)
 			(effects
 				(font
@@ -12112,6 +12221,91 @@
 			(project ""
 				(path "/e68d99d1-94f4-4796-b1e5-64a6fefe04ef"
 					(reference "J2")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Connector_Generic:Conn_01x07")
+		(at 157.48 48.26 0)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp yes)
+		(fields_autoplaced yes)
+		(uuid "4190d6e8-1fee-47f3-8388-626a1d840a22")
+		(property "Reference" "J4"
+			(at 160.02 46.9899 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "Conn_01x07"
+			(at 160.02 49.5299 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "Connector_PinHeader_2.54mm:PinHeader_1x07_P2.54mm_Vertical"
+			(at 157.48 48.26 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" "~"
+			(at 157.48 48.26 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" "Generic connector, single row, 01x07, script generated (kicad-library-utils/schlib/autogen/connector/)"
+			(at 157.48 48.26 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "1"
+			(uuid "ff89e131-5350-4a2c-b179-1ba2623c3fad")
+		)
+		(pin "6"
+			(uuid "a515b4f7-c9ff-4cd4-99b2-ce1d80f1748d")
+		)
+		(pin "7"
+			(uuid "c887fd7b-adf6-418d-86ab-bd41869a7352")
+		)
+		(pin "4"
+			(uuid "4673ea7a-b31b-4431-8493-134af48a5fc2")
+		)
+		(pin "5"
+			(uuid "b0f435be-beb6-4797-a27e-4afb3cd8b0ff")
+		)
+		(pin "2"
+			(uuid "2b346bb0-10b3-4a86-8414-4a1cf15ea6cc")
+		)
+		(pin "3"
+			(uuid "e90c1e6e-783c-498e-b398-bbeec5d56aef")
+		)
+		(instances
+			(project ""
+				(path "/e68d99d1-94f4-4796-b1e5-64a6fefe04ef"
+					(reference "J4")
 					(unit 1)
 				)
 			)
@@ -13643,6 +13837,71 @@
 		)
 	)
 	(symbol
+		(lib_id "power:GND")
+		(at 147.32 55.88 0)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(uuid "ab46f84c-615d-48f8-a6b5-52164ff6af22")
+		(property "Reference" "#PWR016"
+			(at 147.32 62.23 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Value" "GND"
+			(at 147.447 60.2742 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at 147.32 55.88 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" ""
+			(at 147.32 55.88 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" ""
+			(at 147.32 55.88 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "1"
+			(uuid "a3dfc349-af1f-4d96-bac5-39ad729e1537")
+		)
+		(instances
+			(project "vg"
+				(path "/e68d99d1-94f4-4796-b1e5-64a6fefe04ef"
+					(reference "#PWR016")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
 		(lib_id "TS-1088-AR02016:TS-1088-AR02016")
 		(at 157.48 154.94 0)
 		(unit 1)
@@ -14991,6 +15250,71 @@
 			(project "OpenTama"
 				(path "/e68d99d1-94f4-4796-b1e5-64a6fefe04ef"
 					(reference "Q3")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "OpenTama-rescue:+3.3V-power")
+		(at 134.62 53.34 0)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(uuid "faaa7b16-26f6-49d5-bc4f-b2937b2dd8ee")
+		(property "Reference" "#PWR022"
+			(at 134.62 57.15 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Value" "+3V3"
+			(at 135.001 48.9458 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at 134.62 53.34 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" ""
+			(at 134.62 53.34 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" ""
+			(at 134.62 53.34 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "1"
+			(uuid "f99332c9-565e-49da-89bc-3d0ad7262e6a")
+		)
+		(instances
+			(project "vg"
+				(path "/e68d99d1-94f4-4796-b1e5-64a6fefe04ef"
+					(reference "#PWR022")
 					(unit 1)
 				)
 			)
