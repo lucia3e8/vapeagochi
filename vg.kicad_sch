@@ -5880,6 +5880,16 @@
 	)
 	(wire
 		(pts
+			(xy 33.02 146.05) (xy 44.45 146.05)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "3d166568-1ed8-43a3-8ca5-cd2018c56d58")
+	)
+	(wire
+		(pts
 			(xy 31.75 128.27) (xy 38.1 128.27)
 		)
 		(stroke
@@ -6100,6 +6110,16 @@
 	)
 	(wire
 		(pts
+			(xy 33.02 148.59) (xy 44.45 148.59)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "6abcaca9-e9d5-4dea-a94f-27879104314a")
+	)
+	(wire
+		(pts
 			(xy 29.21 165.1) (xy 36.83 165.1)
 		)
 		(stroke
@@ -6170,7 +6190,7 @@
 	)
 	(wire
 		(pts
-			(xy 31.75 153.67) (xy 27.94 153.67)
+			(xy 44.45 153.67) (xy 33.02 153.67)
 		)
 		(stroke
 			(width 0)
@@ -6300,16 +6320,6 @@
 	)
 	(wire
 		(pts
-			(xy 27.94 146.05) (xy 31.75 146.05)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "8ffea938-352e-45a6-926c-bcc77db872e1")
-	)
-	(wire
-		(pts
 			(xy 138.43 133.35) (xy 140.97 133.35)
 		)
 		(stroke
@@ -6327,16 +6337,6 @@
 			(type default)
 		)
 		(uuid "918bea68-f356-401d-8ab6-8021a2adb6ce")
-	)
-	(wire
-		(pts
-			(xy 27.94 148.59) (xy 31.75 148.59)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "9409e349-5fe3-43e2-89ad-76bec60ca03c")
 	)
 	(wire
 		(pts
@@ -6387,16 +6387,6 @@
 			(type default)
 		)
 		(uuid "9c37b2ac-578a-4211-91ae-fe448f31fd8c")
-	)
-	(wire
-		(pts
-			(xy 27.94 151.13) (xy 31.75 151.13)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "9ccdfcf4-5721-4580-97a8-e39e4deab914")
 	)
 	(wire
 		(pts
@@ -6940,6 +6930,16 @@
 	)
 	(wire
 		(pts
+			(xy 33.02 151.13) (xy 44.45 151.13)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "f998d8dc-ca0c-4340-a126-46d00ef5975c")
+	)
+	(wire
+		(pts
 			(xy 208.28 44.45) (xy 208.28 43.18)
 		)
 		(stroke
@@ -7024,7 +7024,7 @@
 	)
 	(text "SPI screens are not using regular SPI.\nThere's RESET instead of MISO,  Also An eXtrA pin for dAtA/commAnd\nCLOCK (normal SPI)\nDATA IN (normal SPI)\nRESET (custom)\nDATA/COMMAND (custom)\nCHIP SELECT (normal SPI)"
 		(exclude_from_sim no)
-		(at 110.998 30.48 0)
+		(at 119.38 24.384 0)
 		(effects
 			(font
 				(size 0.762 0.762)
@@ -7042,6 +7042,16 @@
 			(justify left bottom)
 		)
 		(uuid "51b513fd-91e0-4f65-a522-72c7b8e17bc7")
+	)
+	(text "this other pin row is for a diff brand of display\n"
+		(exclude_from_sim no)
+		(at 141.986 38.608 0)
+		(effects
+			(font
+				(size 0.635 0.635)
+			)
+		)
+		(uuid "68cf01e9-6235-4a9c-8f24-9c4ba286e6e2")
 	)
 	(text "VBATT/2"
 		(exclude_from_sim no)
@@ -7096,6 +7106,16 @@
 			(justify left bottom)
 		)
 		(uuid "abd5563c-ad4b-463a-815d-0266bc5fe051")
+	)
+	(text "overcurrent protection"
+		(exclude_from_sim no)
+		(at 36.576 143.764 0)
+		(effects
+			(font
+				(size 0.508 0.508)
+			)
+		)
+		(uuid "bbffcafc-028e-4250-9534-2f00993f88ae")
 	)
 	(text "MCU and RBG LED"
 		(exclude_from_sim no)
@@ -7587,7 +7607,7 @@
 	)
 	(global_label "USART1_RX"
 		(shape output)
-		(at 31.75 148.59 0)
+		(at 44.45 148.59 0)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -7596,7 +7616,7 @@
 		)
 		(uuid "7157a8f4-67ee-4831-ab3e-07b8ca0c6ea1")
 		(property "Intersheetrefs" "${INTERSHEET_REFS}"
-			(at 31.75 148.59 0)
+			(at 44.45 148.59 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -7647,7 +7667,7 @@
 	)
 	(global_label "USART1_TX"
 		(shape input)
-		(at 31.75 146.05 0)
+		(at 44.45 146.05 0)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -7656,7 +7676,7 @@
 		)
 		(uuid "7775d0b3-27d0-4b38-bc7c-dcf780e391bf")
 		(property "Intersheetrefs" "${INTERSHEET_REFS}"
-			(at 31.75 146.05 0)
+			(at 44.45 146.05 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -7789,7 +7809,7 @@
 	)
 	(global_label "SWCLK"
 		(shape output)
-		(at 31.75 153.67 0)
+		(at 44.45 153.67 0)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -7798,7 +7818,7 @@
 		)
 		(uuid "98932893-b4a4-412e-836f-15c698212f65")
 		(property "Intersheetrefs" "${INTERSHEET_REFS}"
-			(at 31.75 153.67 0)
+			(at 44.45 153.67 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -7869,7 +7889,7 @@
 	)
 	(global_label "SWDIO"
 		(shape bidirectional)
-		(at 31.75 151.13 0)
+		(at 44.45 151.13 0)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -7878,7 +7898,7 @@
 		)
 		(uuid "a8974169-dfe3-466f-be9e-10918540168c")
 		(property "Intersheetrefs" "${INTERSHEET_REFS}"
-			(at 31.75 151.13 0)
+			(at 44.45 151.13 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -9591,7 +9611,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Resistor_SMD:R_0402_1005Metric"
+		(property "Footprint" "PCM_JLCPCB:R_0805"
 			(at 135.89 97.79 0)
 			(effects
 				(font
@@ -9678,7 +9698,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "Resistor_SMD:R_0402_1005Metric"
+		(property "Footprint" "PCM_JLCPCB:R_0402"
 			(at 142.24 101.6 0)
 			(effects
 				(font
@@ -9705,7 +9725,7 @@
 				(hide yes)
 			)
 		)
-		(property "LCSC" "C11702"
+		(property "LCSC" ""
 			(at 142.24 101.6 0)
 			(effects
 				(font
@@ -12008,6 +12028,91 @@
 		)
 	)
 	(symbol
+		(lib_id "Device:R_Small")
+		(at 30.48 146.05 270)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(uuid "1546e3c6-d090-4b56-8442-c61cae691f0b")
+		(property "Reference" "R7"
+			(at 34.29 146.05 90)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "330"
+			(at 38.862 146.05 90)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "Resistor_SMD:R_0402_1005Metric"
+			(at 30.48 146.05 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" "~"
+			(at 30.48 146.05 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" ""
+			(at 30.48 146.05 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "LCSC" "C25104"
+			(at 30.48 146.05 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "JLCRotOffset" ""
+			(at 30.48 146.05 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "1"
+			(uuid "4312d4c3-bb69-469d-bb67-585b34924cfd")
+		)
+		(pin "2"
+			(uuid "c0e392ef-840a-49b8-a390-d37bb2faba38")
+		)
+		(instances
+			(project "vg"
+				(path "/e68d99d1-94f4-4796-b1e5-64a6fefe04ef"
+					(reference "R7")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
 		(lib_name "GND_1")
 		(lib_id "power:GND")
 		(at 209.55 93.98 0)
@@ -12312,6 +12417,91 @@
 		)
 	)
 	(symbol
+		(lib_id "Device:R_Small")
+		(at 30.48 151.13 270)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(uuid "47e9141d-0929-4ba9-8bbb-c62598b5c6d6")
+		(property "Reference" "R14"
+			(at 34.798 151.13 90)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "330"
+			(at 38.862 151.13 90)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "Resistor_SMD:R_0402_1005Metric"
+			(at 30.48 151.13 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" "~"
+			(at 30.48 151.13 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" ""
+			(at 30.48 151.13 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "LCSC" "C25104"
+			(at 30.48 151.13 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "JLCRotOffset" ""
+			(at 30.48 151.13 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "1"
+			(uuid "2486d3e1-ac9c-404a-8ed0-f3720e27c612")
+		)
+		(pin "2"
+			(uuid "ee4ddbf5-6138-4d82-8eb8-19d691e8bdae")
+		)
+		(instances
+			(project "vg"
+				(path "/e68d99d1-94f4-4796-b1e5-64a6fefe04ef"
+					(reference "R14")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
 		(lib_id "Device:C_Small")
 		(at 62.23 91.44 0)
 		(unit 1)
@@ -12480,6 +12670,91 @@
 			(project "OpenTama"
 				(path "/e68d99d1-94f4-4796-b1e5-64a6fefe04ef"
 					(reference "C8")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Device:R_Small")
+		(at 30.48 148.59 270)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(uuid "50458a6d-a77c-4481-a286-ab93d2af434d")
+		(property "Reference" "R8"
+			(at 34.29 148.59 90)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "330"
+			(at 38.862 148.59 90)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "Resistor_SMD:R_0402_1005Metric"
+			(at 30.48 148.59 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" "~"
+			(at 30.48 148.59 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" ""
+			(at 30.48 148.59 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "LCSC" "C25104"
+			(at 30.48 148.59 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "JLCRotOffset" ""
+			(at 30.48 148.59 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "1"
+			(uuid "65eccb64-4d29-45d8-bb91-d5606313affe")
+		)
+		(pin "2"
+			(uuid "f5ef5596-e273-4788-a4cf-99845728cf77")
+		)
+		(instances
+			(project "vg"
+				(path "/e68d99d1-94f4-4796-b1e5-64a6fefe04ef"
+					(reference "R8")
 					(unit 1)
 				)
 			)
@@ -14268,6 +14543,91 @@
 			(project "OpenTama"
 				(path "/e68d99d1-94f4-4796-b1e5-64a6fefe04ef"
 					(reference "R4")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Device:R_Small")
+		(at 30.48 153.67 270)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(uuid "c70e6267-5676-4d22-9707-0964acea447d")
+		(property "Reference" "R15"
+			(at 34.798 153.67 90)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "330"
+			(at 38.862 153.67 90)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "Resistor_SMD:R_0402_1005Metric"
+			(at 30.48 153.67 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" "~"
+			(at 30.48 153.67 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" ""
+			(at 30.48 153.67 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "LCSC" "C25104"
+			(at 30.48 153.67 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "JLCRotOffset" ""
+			(at 30.48 153.67 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "1"
+			(uuid "17ca2d39-6c2d-45e3-b4cc-fc49ae61d05f")
+		)
+		(pin "2"
+			(uuid "0e2dfee7-8f25-4e09-a96b-627b72b6e159")
+		)
+		(instances
+			(project "vg"
+				(path "/e68d99d1-94f4-4796-b1e5-64a6fefe04ef"
+					(reference "R15")
 					(unit 1)
 				)
 			)
