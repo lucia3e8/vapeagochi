@@ -3213,7 +3213,7 @@
 			(uuid "1bcdb0df-d262-4859-81e0-c730e7484f25")
 		)
 		(fp_text user "${REFERENCE}"
-			(at 0 7.62 360)
+			(at 0 7.62 0)
 			(layer "F.Fab")
 			(uuid "c5722d39-6a9a-4404-91d4-f036e38c88d9")
 			(effects
@@ -7764,7 +7764,7 @@
 		(descr "Resistor SMD 0402 (1005 Metric), square (rectangular) end terminal, IPC_7351 nominal, (Body size source: IPC-SM-782 page 72, https://www.pcb-3d.com/wordpress/wp-content/uploads/ipc-sm-782a_amendment_1_and_2.pdf), generated with kicad-footprint-generator")
 		(tags "resistor")
 		(property "Reference" "R10"
-			(at -1.05 -0.85 360)
+			(at -1.05 -0.85 0)
 			(layer "F.SilkS")
 			(hide yes)
 			(uuid "50abfad2-002e-4b13-8bbb-5f5b99fb3255")
@@ -7777,7 +7777,7 @@
 			)
 		)
 		(property "Value" "1k"
-			(at 0 0.2 360)
+			(at 0 0.2 0)
 			(layer "F.Fab")
 			(hide yes)
 			(uuid "68a6bb9a-6fe5-4954-b827-1dabf3ee64af")
@@ -7910,7 +7910,7 @@
 			(uuid "778fb5ae-4003-4ac9-aee5-f1a96e270239")
 		)
 		(fp_text user "${REFERENCE}"
-			(at 0 -0.25 360)
+			(at 0 -0.25 0)
 			(layer "F.Fab")
 			(hide yes)
 			(uuid "56b4fe6d-a0e0-4c0f-bbe6-b9db751f88fa")
@@ -10045,7 +10045,7 @@
 			(uuid "4342e0f3-3e8c-480e-8a07-64c427fb268b")
 		)
 		(fp_text user "${REFERENCE}"
-			(at 0 1.27 360)
+			(at 0 1.27 0)
 			(layer "F.Fab")
 			(uuid "de69f0ee-5cd8-4d38-8855-5ac956ae3cd3")
 			(effects
@@ -11732,7 +11732,7 @@
 		(descr "Resistor SMD 0402 (1005 Metric), square (rectangular) end terminal, IPC_7351 nominal, (Body size source: IPC-SM-782 page 72, https://www.pcb-3d.com/wordpress/wp-content/uploads/ipc-sm-782a_amendment_1_and_2.pdf), generated with kicad-footprint-generator")
 		(tags "resistor")
 		(property "Reference" "R7"
-			(at 0 -1.17 360)
+			(at 0 -1.17 0)
 			(layer "F.SilkS")
 			(hide yes)
 			(uuid "95c73018-6d59-4ba1-b44f-69dfb5acbc68")
@@ -11744,7 +11744,7 @@
 			)
 		)
 		(property "Value" "330"
-			(at 0 1.17 360)
+			(at 0 1.17 0)
 			(layer "F.Fab")
 			(uuid "0f110a04-a103-4fd8-92a6-e7e8eb01b9ec")
 			(effects
@@ -11925,7 +11925,7 @@
 			(uuid "50debd4a-4fce-40b6-804f-3659d87a8fc4")
 		)
 		(fp_text user "${REFERENCE}"
-			(at 0 0 360)
+			(at 0 0 0)
 			(layer "F.Fab")
 			(uuid "cf08ab1c-228a-4768-91c2-f9ecc25c3efe")
 			(effects
@@ -12212,7 +12212,7 @@
 		(descr "Resistor SMD 0402 (1005 Metric), square (rectangular) end terminal, IPC_7351 nominal, (Body size source: IPC-SM-782 page 72, https://www.pcb-3d.com/wordpress/wp-content/uploads/ipc-sm-782a_amendment_1_and_2.pdf), generated with kicad-footprint-generator")
 		(tags "resistor")
 		(property "Reference" "R12"
-			(at 0 -1.17 360)
+			(at 0 -1.17 0)
 			(layer "F.SilkS")
 			(hide yes)
 			(uuid "36ed0e7a-e7c2-4bcd-b6b9-f4108ed019db")
@@ -12224,7 +12224,7 @@
 			)
 		)
 		(property "Value" "330"
-			(at 0 1.17 360)
+			(at 0 1.17 0)
 			(layer "F.Fab")
 			(uuid "9dbf288c-040a-4462-b9bc-6ead5d561bec")
 			(effects
@@ -12405,7 +12405,7 @@
 			(uuid "2c264a34-c6ba-4907-ac70-50839fc56c7f")
 		)
 		(fp_text user "${REFERENCE}"
-			(at 0 0 360)
+			(at 0 0 0)
 			(layer "F.Fab")
 			(uuid "782dc653-b06b-42a6-95ff-5678572cebb2")
 			(effects
@@ -15039,6 +15039,15 @@
 		(uuid "2e7c7682-b455-4a34-b305-b5ebdc1bc99f")
 	)
 	(via
+		(at 117.075 61.575)
+		(size 0.4)
+		(drill 0.2)
+		(layers "F.Cu" "B.Cu")
+		(free yes)
+		(net 2)
+		(uuid "3829917b-f7d0-4baa-914d-b03c418e90d5")
+	)
+	(via
 		(at 131.25 71.55)
 		(size 0.4)
 		(drill 0.2)
@@ -15073,6 +15082,15 @@
 		(free yes)
 		(net 2)
 		(uuid "4c708d33-9826-4cf6-add5-4b883dc4d3ac")
+	)
+	(via
+		(at 114.475 64.275)
+		(size 0.4)
+		(drill 0.2)
+		(layers "F.Cu" "B.Cu")
+		(free yes)
+		(net 2)
+		(uuid "4d890e13-8dad-4712-89f8-7f775edcf65f")
 	)
 	(via
 		(at 120.45 75.9)
@@ -15147,6 +15165,15 @@
 		(uuid "7073b4f6-2008-40a6-98fe-e83cf4c92cd3")
 	)
 	(via
+		(at 123.475 76.925)
+		(size 0.4)
+		(drill 0.2)
+		(layers "F.Cu" "B.Cu")
+		(free yes)
+		(net 2)
+		(uuid "7313fff7-fb11-44b2-ae5f-213c6ff1a2dc")
+	)
+	(via
 		(at 129.05 77.2)
 		(size 0.4)
 		(drill 0.2)
@@ -15163,6 +15190,15 @@
 		(free yes)
 		(net 2)
 		(uuid "759b3a83-1195-4807-aef1-e1ad688f61a4")
+	)
+	(via
+		(at 113.775 59.525)
+		(size 0.4)
+		(drill 0.2)
+		(layers "F.Cu" "B.Cu")
+		(free yes)
+		(net 2)
+		(uuid "78bd2634-fb4f-40ce-80f3-da1984783127")
 	)
 	(via
 		(at 123.729562 69.779562)
