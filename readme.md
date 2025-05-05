@@ -32,3 +32,11 @@
 | PB11 | Coil Enable     |
 | PA1  | Programmable LED|
 ```
+## Building
+```
+cd vgrs
+nix-shell
+cargo build --release --target thumbv6m-none-eabi # build
+sudo probe-rs run --chip STM32L072CBTx target/thumbv6m-none-eabi/release/vgrs # flash
+```
+
