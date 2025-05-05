@@ -33,6 +33,8 @@
 | PA1  | Programmable LED|
 ```
 ## Building
+
+Either do `nix-shell`, or manually install `cargo` with `thumbv6m-none-eabi` target and `probe-rs`.
 ```
 cd vgrs
 nix-shell
