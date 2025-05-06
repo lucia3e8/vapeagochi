@@ -32,6 +32,8 @@
 | PB11 | Coil Enable     |
 | PA1  | Programmable LED|
 ```
+By default, the vape's heating coil is disabled via a MOSFET. Pull `PB11 (Coil Enable)` high to allow the coil to turn on when user hits the vape.
+When user tries to hit the vape, `PA4 (Coil Input)` will go high, regardless of `PB11` state.
 ## Building
 
 Either do `nix-shell`, or manually install `cargo` with `thumbv6m-none-eabi` target and `probe-rs`.
