@@ -17,6 +17,13 @@ use bitvec::prelude::*;
 // Button state buffer size
 const BUTTON_HISTORY_SIZE: usize = 10;
 
+const HIT_HIGH: u16 = 140;
+const HIT_LOW: u16 = 100;
+
+// how many consecutive samples above/below to trigger/reset
+const OVER_DEBOUNCE: usize = 10;
+const UNDER_DEBOUNCE: usize = 10;
+
 // Button states
 struct ButtonState {
     left: BitArray<[u8; 2], Lsb0>,  // 2 bytes = 16 bits, more than enough for 10 samples
@@ -120,7 +127,10 @@ fn main() -> ! {
     let mut button_state = ButtonState::new();
     let mut buf: String<32> = String::new();
 
-
+    let mut hit_count: u32 = 0;
+    let mut over_count: usize = 0;
+    let mut under_count: usize = 0;
+    let mut hit_armed = true; // only count when armed
 
 
     loop {
@@ -134,11 +144,39 @@ fn main() -> ! {
 
         use core::fmt::Write;
         let val:u16 = adc.read(&mut an_in).unwrap();
-        write!(buf, "coil_in={}\n[{} {} {}] ",
-            val,
-            if left_debounced { "1" } else { "0" },
+
+        // detect over threshold
+        if val > HIT_HIGH {
+            over_count += 1;
+            under_count = 0;
+    
+            // only when you hit exactly the debounce window
+            if over_count == OVER_DEBOUNCE && hit_armed {
+                hit_count = hit_count.wrapping_add(1);
+                hit_armed = false;
+            }
+        } else if val < HIT_LOW {
+            under_count += 1;
+            over_count = 0;
+    
+            if under_count >= UNDER_DEBOUNCE {
+                hit_armed = true;
+            }
+        }
+
+        if over_count >= OVER_DEBOUNCE && hit_armed {
+            hit_count = hit_count.wrapping_add(1);
+            hit_armed = false;
+        }
+
+        write!(
+            buf,
+            "coil_in={} hits={}\n[{} {} {}] ",
+            val,           // real ADC value
+            hit_count,     // total hits
+            if left_debounced   { "1" } else { "0" },
             if middle_debounced { "1" } else { "0" },
-            if right_debounced { "1" } else { "0" }
+            if right_debounced  { "1" } else { "0" },
         ).unwrap();
 
         // Wait for timer interrupt
@@ -146,6 +184,7 @@ fn main() -> ! {
             display.clear();
             display.write_str(&buf);
             timer.start(60_u32.Hz());
+            rprintln!("val={} over={} under={} armed={}", val, over_count, under_count, hit_armed);
         }
 
         // BUZZER DOES NOT WORK
