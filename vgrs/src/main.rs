@@ -18,11 +18,11 @@ use bitvec::prelude::*;
 const BUTTON_HISTORY_SIZE: usize = 10;
 
 const HIT_HIGH: u16 = 140;
-const HIT_LOW: u16 = 100;
+const HIT_LOW: u16 = 130;
 
 // how many consecutive samples above/below to trigger/reset
-const OVER_DEBOUNCE: usize = 10;
-const UNDER_DEBOUNCE: usize = 10;
+const OVER_DEBOUNCE: usize = 5;
+const UNDER_DEBOUNCE: usize = 3;
 
 // Button states
 struct ButtonState {
@@ -117,7 +117,7 @@ fn main() -> ! {
 
     // coil enable/disable
     let mut coil_en = gpiob.pb11.into_push_pull_output();
-    coil_en.set_high().unwrap(); // enables the heating coil
+    coil_en.set_low().unwrap(); // enables the heating coil
 
     // buttons!
     let btn_left = gpiob.pb3.into_floating_input();
@@ -125,7 +125,7 @@ fn main() -> ! {
     let btn_middle = gpioa.pa0.into_floating_input();
 
     let mut button_state = ButtonState::new();
-    let mut buf: String<32> = String::new();
+    let mut buf: String<64> = String::new();
 
     let mut hit_count: u32 = 0;
     let mut over_count: usize = 0;
@@ -164,11 +164,6 @@ fn main() -> ! {
             }
         }
 
-        if over_count >= OVER_DEBOUNCE && hit_armed {
-            hit_count = hit_count.wrapping_add(1);
-            hit_armed = false;
-        }
-
         write!(
             buf,
             "coil_in={} hits={}\n[{} {} {}] ",
@@ -181,8 +176,11 @@ fn main() -> ! {
 
         // Wait for timer interrupt
         while timer.wait().is_ok() {
-            display.clear();
-            display.write_str(&buf);
+            display.set_position(0, 0).unwrap();
+            display.write_str(&buf).unwrap();  // overwrites previous chars
+            // display.clear_buffer();      // no SPI traffic
+            // display.write_str(&buf);
+            // display.flush().unwrap();    // single SPI write
             timer.start(60_u32.Hz());
             rprintln!("val={} over={} under={} armed={}", val, over_count, under_count, hit_armed);
         }
