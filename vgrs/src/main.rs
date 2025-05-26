@@ -37,6 +37,9 @@ const HIT_LOW: u16 = 120;
 const OVER_DEBOUNCE: usize = 5;
 const UNDER_DEBOUNCE: usize = 3;
 
+// TODO: Add EEPROM support for persistent storage
+// STM32L072 has 6KB data EEPROM starting at 0x08080000
+
 // Button states
 struct ButtonState {
     left: BitArray<[u8; 2], Lsb0>, // 2 bytes = 16 bits, more than enough for 10 samples
@@ -49,8 +52,10 @@ struct ButtonState {
 struct VoltageState {
     samples: Vec<u16, VOLTAGE_HISTORY_SIZE>,
     pos: usize,
-    hit_armed: bool,
-    hit_count: u32,
+    hit_active: bool,
+    hit_start_time: Option<u32>,
+    total_hit_duration_ms: u32,
+    current_hit_duration_ms: u32,
 }
 
 impl ButtonState {
@@ -106,8 +111,10 @@ impl VoltageState {
         VoltageState {
             samples: Vec::new(),
             pos: 0,
-            hit_armed: true,
-            hit_count: 0,
+            hit_active: false,
+            hit_start_time: None,
+            total_hit_duration_ms: 0,
+            current_hit_duration_ms: 0,
         }
     }
 
@@ -120,36 +127,49 @@ impl VoltageState {
         self.pos = (self.pos + 1) % VOLTAGE_HISTORY_SIZE;
     }
 
-    fn check_hit(&mut self) -> bool {
+    fn check_hit(&mut self, current_time_ms: u32) {
         if self.samples.len() < VOLTAGE_HISTORY_SIZE {
-            return false; // Not enough samples yet
+            return; // Not enough samples yet
         }
 
         let over_threshold_count = self.samples.iter().filter(|&&val| val > HIT_HIGH).count();
 
         let under_threshold_count = self.samples.iter().filter(|&&val| val < HIT_LOW).count();
 
-        // Check if we have enough samples over threshold for a hit
-        if over_threshold_count >= OVER_DEBOUNCE && self.hit_armed {
-            self.hit_count = self.hit_count.wrapping_add(1);
-            self.hit_armed = false;
-            return true;
+        // Check if hit is starting
+        if over_threshold_count >= OVER_DEBOUNCE && !self.hit_active {
+            self.hit_active = true;
+            self.hit_start_time = Some(current_time_ms);
+            self.current_hit_duration_ms = 0;
         }
-
-        // Check if we have enough samples under threshold to re-arm
-        if under_threshold_count >= UNDER_DEBOUNCE {
-            self.hit_armed = true;
+        // Check if hit is ending
+        else if under_threshold_count >= UNDER_DEBOUNCE && self.hit_active {
+            self.hit_active = false;
+            if let Some(start) = self.hit_start_time {
+                let duration = current_time_ms.wrapping_sub(start);
+                self.total_hit_duration_ms = self.total_hit_duration_ms.wrapping_add(duration);
+                self.current_hit_duration_ms = 0;
+            }
+            self.hit_start_time = None;
         }
-
-        false
+        // Update current hit duration if active
+        else if self.hit_active {
+            if let Some(start) = self.hit_start_time {
+                self.current_hit_duration_ms = current_time_ms.wrapping_sub(start);
+            }
+        }
     }
 
-    fn get_hit_count(&self) -> u32 {
-        self.hit_count
+    fn get_total_duration_seconds(&self) -> f32 {
+        self.total_hit_duration_ms as f32 / 1000.0
     }
 
-    fn is_armed(&self) -> bool {
-        self.hit_armed
+    fn get_current_duration_ms(&self) -> u32 {
+        self.current_hit_duration_ms
+    }
+
+    fn is_hitting(&self) -> bool {
+        self.hit_active
     }
 }
 
@@ -215,6 +235,9 @@ fn main() -> ! {
     let mut button_state = ButtonState::new();
     let mut voltage_state = VoltageState::new();
     let mut buf: String<64> = String::new();
+    let mut elapsed_ms: u32 = 0;
+
+    // TODO: Load saved duration from EEPROM once implemented
 
     loop {
         buf.clear();
@@ -230,18 +253,29 @@ fn main() -> ! {
 
         // Update voltage state with new sample
         voltage_state.update(val);
-        let _hit_detected = voltage_state.check_hit();
+        voltage_state.check_hit(elapsed_ms);
 
+        // Format display to avoid wrapping
         write!(
             buf,
-            "coil_in={} hits={}\n[{} {} {}] ",
-            val,                           // real ADC value
-            voltage_state.get_hit_count(), // total hits
-            if left_debounced { "1" } else { "0" },
-            if middle_debounced { "1" } else { "0" },
-            if right_debounced { "1" } else { "0" },
+            "V:{:3} T:{:.1}s\n[{}{}{}] ",
+            val,                                        // voltage (3 digits)
+            voltage_state.get_total_duration_seconds(), // total time
+            if left_debounced { "L" } else { "-" },
+            if middle_debounced { "M" } else { "-" },
+            if right_debounced { "R" } else { "-" },
         )
         .unwrap();
+
+        // Add current hit indicator
+        if voltage_state.is_hitting() {
+            write!(
+                buf,
+                "HIT:{:.1}s",
+                voltage_state.get_current_duration_ms() as f32 / 1000.0
+            )
+            .unwrap();
+        }
 
         // Wait for timer interrupt
         while timer.wait().is_ok() {
@@ -251,11 +285,15 @@ fn main() -> ! {
                                               // display.write_str(&buf);
                                               // display.flush().unwrap();    // single SPI write
             timer.start(60_u32.Hz());
+            elapsed_ms = elapsed_ms.wrapping_add(16); // ~60Hz = ~16ms per frame
+
+            // TODO: Save to EEPROM periodically once implemented
+
             rprintln!(
-                "val={} hits={} armed={}",
+                "val={} total_s={:.1} hitting={}",
                 val,
-                voltage_state.get_hit_count(),
-                voltage_state.is_armed()
+                voltage_state.get_total_duration_seconds(),
+                voltage_state.is_hitting()
             );
         }
 
