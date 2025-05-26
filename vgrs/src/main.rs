@@ -10,12 +10,14 @@ use core::fmt::Write;
 use cortex_m_rt::entry;
 use embedded_time::rate::*;
 use heapless::{String, Vec}; // 32‑byte static buffer
+use panic_halt as _;
 use rtt_target::{rprintln, rtt_init_print};
 use ssd1306::{
     mode::DisplayConfig,
     prelude::{Brightness, DisplayRotation, DisplaySize128x64, SPIInterfaceNoCS},
     Ssd1306,
 };
+use stm32l0xx_hal::pac::{Peripherals, FLASH};
 use stm32l0xx_hal::{
     adc::{Adc, SampleTime},
     delay::Delay,
@@ -37,8 +39,10 @@ const HIT_LOW: u16 = 120;
 const OVER_DEBOUNCE: usize = 5;
 const UNDER_DEBOUNCE: usize = 3;
 
-// TODO: Add EEPROM support for persistent storage
+// Add EEPROM support for persistent storage
 // STM32L072 has 6KB data EEPROM starting at 0x08080000
+const EEPROM_BASE: u32 = 0x0808_0000;
+const HITTIME_OFFSET: u32 = 0x0002; // bytes
 
 // Button states
 struct ButtonState {
@@ -127,14 +131,16 @@ impl VoltageState {
         self.pos = (self.pos + 1) % VOLTAGE_HISTORY_SIZE;
     }
 
-    fn check_hit(&mut self, current_time_ms: u32) {
+    fn check_hit(&mut self, current_time_ms: u32) -> bool {
         if self.samples.len() < VOLTAGE_HISTORY_SIZE {
-            return; // Not enough samples yet
+            return false; // Not enough samples yet
         }
 
         let over_threshold_count = self.samples.iter().filter(|&&val| val > HIT_HIGH).count();
 
         let under_threshold_count = self.samples.iter().filter(|&&val| val < HIT_LOW).count();
+
+        let mut hit_just_ended = false;
 
         // Check if hit is starting
         if over_threshold_count >= OVER_DEBOUNCE && !self.hit_active {
@@ -149,6 +155,7 @@ impl VoltageState {
                 let duration = current_time_ms.wrapping_sub(start);
                 self.total_hit_duration_ms = self.total_hit_duration_ms.wrapping_add(duration);
                 self.current_hit_duration_ms = 0;
+                hit_just_ended = true;
             }
             self.hit_start_time = None;
         }
@@ -158,6 +165,8 @@ impl VoltageState {
                 self.current_hit_duration_ms = current_time_ms.wrapping_sub(start);
             }
         }
+
+        hit_just_ended
     }
 
     fn get_total_duration_seconds(&self) -> f32 {
@@ -171,6 +180,52 @@ impl VoltageState {
     fn is_hitting(&self) -> bool {
         self.hit_active
     }
+}
+
+// unlock the EEPROM for programming
+fn unlock_eeprom(flash: &FLASH) {
+    // write the two PEKEYR keys
+    flash.pekeyr.write(|w| unsafe { w.bits(0x89ABCDEF) });
+    flash.pekeyr.write(|w| unsafe { w.bits(0x02030405) });
+}
+
+// lock the EEPROM against further writes
+fn lock_eeprom(flash: &FLASH) {
+    flash.pecr.modify(|_, w| w.pelock().set_bit());
+}
+
+// program one 16-bit half-word at (EEPROM_BASE + offset)
+fn write_halfword(flash: &FLASH, offset: u32, data: u16) {
+    let addr = (EEPROM_BASE + offset) as *mut u16;
+    // wait until not busy
+    while flash.sr.read().bsy().bit_is_set() {}
+    unlock_eeprom(flash);
+    // Write data directly - STM32L0 EEPROM doesn't need PROG bit
+    unsafe { core::ptr::write_volatile(addr, data) };
+    // wait until done
+    while flash.sr.read().bsy().bit_is_set() {}
+    lock_eeprom(flash);
+}
+
+// read one 16-bit half-word from EEPROM
+fn read_halfword(offset: u32) -> u16 {
+    let addr = (EEPROM_BASE + offset) as *const u16;
+    unsafe { core::ptr::read_volatile(addr) }
+}
+
+// write a full 32-bit word as two half-words
+fn write_word(flash: &FLASH, offset: u32, data: u32) {
+    let lo = (data & 0xFFFF) as u16;
+    let hi = (data >> 16) as u16;
+    write_halfword(flash, offset, lo);
+    write_halfword(flash, offset + 2, hi);
+}
+
+// read back a 32-bit word
+fn read_word(offset: u32) -> u32 {
+    let lo = read_halfword(offset) as u32;
+    let hi = read_halfword(offset + 2) as u32;
+    (hi << 16) | lo
 }
 
 #[entry]
@@ -237,7 +292,22 @@ fn main() -> ! {
     let mut buf: String<64> = String::new();
     let mut elapsed_ms: u32 = 0;
 
-    // TODO: Load saved duration from EEPROM once implemented
+    // Load saved duration from EEPROM
+    let saved_duration = read_word(HITTIME_OFFSET);
+    // Check if EEPROM has valid data (not 0xFFFFFFFF which is erased state)
+    if saved_duration != 0xFFFF_FFFF && saved_duration != 0 {
+        voltage_state.total_hit_duration_ms = saved_duration;
+        rprintln!(
+            "Loaded hit duration from EEPROM: {} ms ({:.1} s)",
+            saved_duration,
+            saved_duration as f32 / 1000.0
+        );
+    } else {
+        rprintln!("No saved hit duration found in EEPROM, starting fresh");
+    }
+
+    let mut last_save_time = elapsed_ms;
+    let mut last_saved_duration = voltage_state.total_hit_duration_ms;
 
     loop {
         buf.clear();
@@ -253,7 +323,22 @@ fn main() -> ! {
 
         // Update voltage state with new sample
         voltage_state.update(val);
-        voltage_state.check_hit(elapsed_ms);
+        let hit_just_ended = voltage_state.check_hit(elapsed_ms);
+
+        // Save immediately when a hit ends
+        if hit_just_ended {
+            write_word(
+                &dp.FLASH,
+                HITTIME_OFFSET,
+                voltage_state.total_hit_duration_ms,
+            );
+            last_saved_duration = voltage_state.total_hit_duration_ms;
+            rprintln!(
+                "Hit ended - saved duration to EEPROM: {} ms ({:.1} s)",
+                voltage_state.total_hit_duration_ms,
+                voltage_state.get_total_duration_seconds()
+            );
+        }
 
         // Format display to avoid wrapping
         write!(
@@ -287,7 +372,23 @@ fn main() -> ! {
             timer.start(60_u32.Hz());
             elapsed_ms = elapsed_ms.wrapping_add(16); // ~60Hz = ~16ms per frame
 
-            // TODO: Save to EEPROM periodically once implemented
+            // Save to EEPROM every 10 seconds if value changed
+            if elapsed_ms.wrapping_sub(last_save_time) > 10000 {
+                if voltage_state.total_hit_duration_ms != last_saved_duration {
+                    write_word(
+                        &dp.FLASH,
+                        HITTIME_OFFSET,
+                        voltage_state.total_hit_duration_ms,
+                    );
+                    last_saved_duration = voltage_state.total_hit_duration_ms;
+                    rprintln!(
+                        "Saved hit duration to EEPROM: {} ms ({:.1} s)",
+                        voltage_state.total_hit_duration_ms,
+                        voltage_state.get_total_duration_seconds()
+                    );
+                }
+                last_save_time = elapsed_ms;
+            }
 
             rprintln!(
                 "val={} total_s={:.1} hitting={}",
