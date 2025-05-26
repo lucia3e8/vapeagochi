@@ -10,16 +10,15 @@ use core::fmt::Write;
 use cortex_m_rt::entry;
 use embedded_time::rate::*;
 use heapless::{String, Vec}; // 32‑byte static buffer
-use panic_halt as _;
 use rtt_target::{rprintln, rtt_init_print};
 use ssd1306::{
     mode::DisplayConfig,
-    prelude::{Brightness, DisplayRotation, DisplaySize128x64, SPIInterfaceNoCS},
+    prelude::{DisplayRotation, DisplaySize128x64, SPIInterfaceNoCS},
     Ssd1306,
 };
-use stm32l0xx_hal::pac::{Peripherals, FLASH};
+use stm32l0xx_hal::pac::FLASH;
 use stm32l0xx_hal::{
-    adc::{Adc, SampleTime},
+    adc::Adc,
     delay::Delay,
     pac,
     prelude::*,
