@@ -5,20 +5,33 @@
 
 extern crate panic_halt;
 
-use embedded_time::rate::*;
-use cortex_m_rt::entry;
-use rtt_target::{rtt_init_print, rprintln};
-use stm32l0xx_hal::{pac, prelude::*, rcc::Config, spi::Spi, delay::Delay, adc::{Adc, SampleTime}, timer::Timer};
-use ssd1306::{prelude::{SPIInterfaceNoCS, DisplaySize128x64, DisplayRotation, Brightness}, Ssd1306, mode::DisplayConfig};
-use core::fmt::Write;
-use heapless::{String, Vec};   // 32‑byte static buffer
 use bitvec::prelude::*;
+use core::fmt::Write;
+use cortex_m_rt::entry;
+use embedded_time::rate::*;
+use heapless::{String, Vec}; // 32‑byte static buffer
+use rtt_target::{rprintln, rtt_init_print};
+use ssd1306::{
+    mode::DisplayConfig,
+    prelude::{Brightness, DisplayRotation, DisplaySize128x64, SPIInterfaceNoCS},
+    Ssd1306,
+};
+use stm32l0xx_hal::{
+    adc::{Adc, SampleTime},
+    delay::Delay,
+    pac,
+    prelude::*,
+    rcc::Config,
+    spi::Spi,
+    timer::Timer,
+};
 
 // Button state buffer size
 const BUTTON_HISTORY_SIZE: usize = 10;
+const VOLTAGE_HISTORY_SIZE: usize = 10;
 
 const HIT_HIGH: u16 = 140;
-const HIT_LOW: u16 = 130;
+const HIT_LOW: u16 = 120;
 
 // how many consecutive samples above/below to trigger/reset
 const OVER_DEBOUNCE: usize = 5;
@@ -26,10 +39,18 @@ const UNDER_DEBOUNCE: usize = 3;
 
 // Button states
 struct ButtonState {
-    left: BitArray<[u8; 2], Lsb0>,  // 2 bytes = 16 bits, more than enough for 10 samples
+    left: BitArray<[u8; 2], Lsb0>, // 2 bytes = 16 bits, more than enough for 10 samples
     right: BitArray<[u8; 2], Lsb0>,
     middle: BitArray<[u8; 2], Lsb0>,
     pos: usize,
+}
+
+// Voltage state using circular buffer approach
+struct VoltageState {
+    samples: Vec<u16, VOLTAGE_HISTORY_SIZE>,
+    pos: usize,
+    hit_armed: bool,
+    hit_count: u32,
 }
 
 impl ButtonState {
@@ -50,18 +71,87 @@ impl ButtonState {
     }
 
     fn is_debounced(&self, threshold: usize) -> (bool, bool, bool) {
-        let left_count = self.left.iter().by_vals().take(BUTTON_HISTORY_SIZE).filter(|&x| x).count();
-        let right_count = self.right.iter().by_vals().take(BUTTON_HISTORY_SIZE).filter(|&x| x).count();
-        let middle_count = self.middle.iter().by_vals().take(BUTTON_HISTORY_SIZE).filter(|&x| x).count();
+        let left_count = self
+            .left
+            .iter()
+            .by_vals()
+            .take(BUTTON_HISTORY_SIZE)
+            .filter(|&x| x)
+            .count();
+        let right_count = self
+            .right
+            .iter()
+            .by_vals()
+            .take(BUTTON_HISTORY_SIZE)
+            .filter(|&x| x)
+            .count();
+        let middle_count = self
+            .middle
+            .iter()
+            .by_vals()
+            .take(BUTTON_HISTORY_SIZE)
+            .filter(|&x| x)
+            .count();
 
         (
             left_count >= threshold,
             right_count >= threshold,
-            middle_count >= threshold
+            middle_count >= threshold,
         )
     }
 }
 
+impl VoltageState {
+    fn new() -> Self {
+        VoltageState {
+            samples: Vec::new(),
+            pos: 0,
+            hit_armed: true,
+            hit_count: 0,
+        }
+    }
+
+    fn update(&mut self, sample: u16) {
+        if self.samples.len() < VOLTAGE_HISTORY_SIZE {
+            self.samples.push(sample).unwrap();
+        } else {
+            self.samples[self.pos] = sample;
+        }
+        self.pos = (self.pos + 1) % VOLTAGE_HISTORY_SIZE;
+    }
+
+    fn check_hit(&mut self) -> bool {
+        if self.samples.len() < VOLTAGE_HISTORY_SIZE {
+            return false; // Not enough samples yet
+        }
+
+        let over_threshold_count = self.samples.iter().filter(|&&val| val > HIT_HIGH).count();
+
+        let under_threshold_count = self.samples.iter().filter(|&&val| val < HIT_LOW).count();
+
+        // Check if we have enough samples over threshold for a hit
+        if over_threshold_count >= OVER_DEBOUNCE && self.hit_armed {
+            self.hit_count = self.hit_count.wrapping_add(1);
+            self.hit_armed = false;
+            return true;
+        }
+
+        // Check if we have enough samples under threshold to re-arm
+        if under_threshold_count >= UNDER_DEBOUNCE {
+            self.hit_armed = true;
+        }
+
+        false
+    }
+
+    fn get_hit_count(&self) -> u32 {
+        self.hit_count
+    }
+
+    fn is_armed(&self) -> bool {
+        self.hit_armed
+    }
+}
 
 #[entry]
 fn main() -> ! {
@@ -102,12 +192,10 @@ fn main() -> ! {
 
     // Create display interface
     let interface = SPIInterfaceNoCS::new(spi, dc);
-    let mut display = Ssd1306::new(interface, DisplaySize128x64, DisplayRotation::Rotate180)
-        .into_terminal_mode();
+    let mut display =
+        Ssd1306::new(interface, DisplaySize128x64, DisplayRotation::Rotate180).into_terminal_mode();
 
-    display
-        .reset(&mut rst, &mut delay)
-        .unwrap();
+    display.reset(&mut rst, &mut delay).unwrap();
     let _ = display.init().unwrap();
     let _ = display.clear().unwrap();
 
@@ -117,7 +205,7 @@ fn main() -> ! {
 
     // coil enable/disable
     let mut coil_en = gpiob.pb11.into_push_pull_output();
-    coil_en.set_low().unwrap(); // enables the heating coil
+    coil_en.set_high().unwrap(); // enables the heating coil
 
     // buttons!
     let btn_left = gpiob.pb3.into_floating_input();
@@ -125,13 +213,8 @@ fn main() -> ! {
     let btn_middle = gpioa.pa0.into_floating_input();
 
     let mut button_state = ButtonState::new();
+    let mut voltage_state = VoltageState::new();
     let mut buf: String<64> = String::new();
-
-    let mut hit_count: u32 = 0;
-    let mut over_count: usize = 0;
-    let mut under_count: usize = 0;
-    let mut hit_armed = true; // only count when armed
-
 
     loop {
         buf.clear();
@@ -143,46 +226,37 @@ fn main() -> ! {
         let (left_debounced, right_debounced, middle_debounced) = button_state.is_debounced(7); // 7 out of 10 samples
 
         use core::fmt::Write;
-        let val:u16 = adc.read(&mut an_in).unwrap();
+        let val: u16 = adc.read(&mut an_in).unwrap();
 
-        // detect over threshold
-        if val > HIT_HIGH {
-            over_count += 1;
-            under_count = 0;
-    
-            // only when you hit exactly the debounce window
-            if over_count == OVER_DEBOUNCE && hit_armed {
-                hit_count = hit_count.wrapping_add(1);
-                hit_armed = false;
-            }
-        } else if val < HIT_LOW {
-            under_count += 1;
-            over_count = 0;
-    
-            if under_count >= UNDER_DEBOUNCE {
-                hit_armed = true;
-            }
-        }
+        // Update voltage state with new sample
+        voltage_state.update(val);
+        let _hit_detected = voltage_state.check_hit();
 
         write!(
             buf,
             "coil_in={} hits={}\n[{} {} {}] ",
-            val,           // real ADC value
-            hit_count,     // total hits
-            if left_debounced   { "1" } else { "0" },
+            val,                           // real ADC value
+            voltage_state.get_hit_count(), // total hits
+            if left_debounced { "1" } else { "0" },
             if middle_debounced { "1" } else { "0" },
-            if right_debounced  { "1" } else { "0" },
-        ).unwrap();
+            if right_debounced { "1" } else { "0" },
+        )
+        .unwrap();
 
         // Wait for timer interrupt
         while timer.wait().is_ok() {
             display.set_position(0, 0).unwrap();
-            display.write_str(&buf).unwrap();  // overwrites previous chars
-            // display.clear_buffer();      // no SPI traffic
-            // display.write_str(&buf);
-            // display.flush().unwrap();    // single SPI write
+            display.write_str(&buf).unwrap(); // overwrites previous chars
+                                              // display.clear_buffer();      // no SPI traffic
+                                              // display.write_str(&buf);
+                                              // display.flush().unwrap();    // single SPI write
             timer.start(60_u32.Hz());
-            rprintln!("val={} over={} under={} armed={}", val, over_count, under_count, hit_armed);
+            rprintln!(
+                "val={} hits={} armed={}",
+                val,
+                voltage_state.get_hit_count(),
+                voltage_state.is_armed()
+            );
         }
 
         // BUZZER DOES NOT WORK
@@ -198,7 +272,5 @@ fn main() -> ! {
         //    }
         //    buzzer_timer.start(500_u32.Hz());
         //}
-
     }
 }
-
