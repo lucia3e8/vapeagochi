@@ -37,8 +37,11 @@ const HITTIME_OFFSET: u32 = 0x0002; // bytes (total hit duration)
 const HITCOUNT_OFFSET: u32 = 0x0006; // bytes (total hit count)
 
 // Time limit configuration
-const HOURLY_LIMIT_MS: u32 = 3_000; // 1 minute per hour (60 seconds * 1000ms)
-const HOUR_MS: u32 = 3_600_000; // 1 hour in milliseconds
+const PERIOD_LIMIT_MS: u32 = 3_000; // 3 seconds allowed per period (for testing)
+const PERIOD_DURATION_MS: u32 = 60_000; // 1 minute period (for testing, change to 3_600_000 for 1 hour)
+
+// Sleep mode configuration
+const DISPLAY_TIMEOUT_MS: u32 = 30_000; // 30 seconds before display sleeps
 
 // Button states
 struct ButtonState {
@@ -57,9 +60,9 @@ struct VoltageState {
     total_hit_duration_ms: u32,
     current_hit_duration_ms: u32,
     total_hit_count: u32,
-    // Hour tracking
-    hour_start_time: u32,
-    hour_duration_ms: u32,
+    // Period tracking
+    period_start_time: u32,
+    period_duration_ms: u32,
 }
 
 impl ButtonState {
@@ -120,8 +123,8 @@ impl VoltageState {
             total_hit_duration_ms: 0,
             current_hit_duration_ms: 0,
             total_hit_count: 0,
-            hour_start_time: 0,
-            hour_duration_ms: 0,
+            period_start_time: 0,
+            period_duration_ms: 0,
         }
     }
 
@@ -174,17 +177,17 @@ impl VoltageState {
                 let duration = current_time_ms.wrapping_sub(start);
 
                 // Check if adding this duration would exceed limit
-                let new_hour_duration = self.hour_duration_ms.wrapping_add(duration);
-                if new_hour_duration > HOURLY_LIMIT_MS {
+                let new_period_duration = self.period_duration_ms.wrapping_add(duration);
+                if new_period_duration > PERIOD_LIMIT_MS {
                     // Only add up to the limit
-                    let allowed_duration = HOURLY_LIMIT_MS.saturating_sub(self.hour_duration_ms);
+                    let allowed_duration = PERIOD_LIMIT_MS.saturating_sub(self.period_duration_ms);
                     self.total_hit_duration_ms =
                         self.total_hit_duration_ms.wrapping_add(allowed_duration);
-                    self.hour_duration_ms = HOURLY_LIMIT_MS;
+                    self.period_duration_ms = PERIOD_LIMIT_MS;
                     rprintln!("Hit truncated to stay within limit");
                 } else {
                     self.total_hit_duration_ms = self.total_hit_duration_ms.wrapping_add(duration);
-                    self.hour_duration_ms = new_hour_duration;
+                    self.period_duration_ms = new_period_duration;
                 }
 
                 self.current_hit_duration_ms = 0;
@@ -198,16 +201,16 @@ impl VoltageState {
                 self.current_hit_duration_ms = current_time_ms.wrapping_sub(start);
 
                 // Check if we're about to exceed the limit
-                let projected_hour_duration = self
-                    .hour_duration_ms
+                let projected_period_duration = self
+                    .period_duration_ms
                     .wrapping_add(self.current_hit_duration_ms);
-                if projected_hour_duration >= HOURLY_LIMIT_MS {
+                if projected_period_duration >= PERIOD_LIMIT_MS {
                     // Force end the hit
                     self.hit_active = false;
-                    let allowed_duration = HOURLY_LIMIT_MS.saturating_sub(self.hour_duration_ms);
+                    let allowed_duration = PERIOD_LIMIT_MS.saturating_sub(self.period_duration_ms);
                     self.total_hit_duration_ms =
                         self.total_hit_duration_ms.wrapping_add(allowed_duration);
-                    self.hour_duration_ms = HOURLY_LIMIT_MS;
+                    self.period_duration_ms = PERIOD_LIMIT_MS;
                     self.current_hit_duration_ms = 0;
                     self.hit_start_time = None;
                     hit_just_ended = true;
@@ -235,35 +238,44 @@ impl VoltageState {
         self.total_hit_count
     }
 
-    fn check_hour_reset(&mut self, current_time_ms: u32) {
-        // Check if an hour has passed
-        if current_time_ms.wrapping_sub(self.hour_start_time) >= HOUR_MS {
-            self.hour_start_time = current_time_ms;
-            self.hour_duration_ms = 0;
-            rprintln!("Hour reset - new hour started");
+    fn check_period_reset(&mut self, current_time_ms: u32) {
+        // Check if a period has passed
+        if current_time_ms.wrapping_sub(self.period_start_time) >= PERIOD_DURATION_MS {
+            self.period_start_time = current_time_ms;
+            self.period_duration_ms = 0;
+            rprintln!("Period reset - new period started");
         }
     }
 
-    fn reset_hour(&mut self, current_time_ms: u32) {
-        self.hour_start_time = current_time_ms;
-        self.hour_duration_ms = 0;
-        rprintln!("Hour manually reset");
+    fn reset_period(&mut self, current_time_ms: u32) {
+        self.period_start_time = current_time_ms;
+        self.period_duration_ms = 0;
+        rprintln!("Period manually reset");
     }
 
-    fn get_hour_remaining_ms(&self) -> u32 {
-        if self.hour_duration_ms >= HOURLY_LIMIT_MS {
+    fn get_period_remaining_ms(&self) -> u32 {
+        if self.period_duration_ms >= PERIOD_LIMIT_MS {
             0
         } else {
-            HOURLY_LIMIT_MS - self.hour_duration_ms
+            PERIOD_LIMIT_MS - self.period_duration_ms
         }
     }
 
     fn is_limit_reached(&self) -> bool {
-        self.hour_duration_ms >= HOURLY_LIMIT_MS
+        self.period_duration_ms >= PERIOD_LIMIT_MS
     }
 
-    fn get_hour_duration_seconds(&self) -> f32 {
-        self.hour_duration_ms as f32 / 1000.0
+    fn get_period_duration_seconds(&self) -> f32 {
+        self.period_duration_ms as f32 / 1000.0
+    }
+    
+    fn get_time_until_reset_ms(&self, current_time_ms: u32) -> u32 {
+        let elapsed_in_period = current_time_ms.wrapping_sub(self.period_start_time);
+        if elapsed_in_period >= PERIOD_DURATION_MS {
+            0 // Should reset on next check
+        } else {
+            PERIOD_DURATION_MS - elapsed_in_period
+        }
     }
 }
 
@@ -400,13 +412,17 @@ fn main() -> ! {
         rprintln!("No saved hit count found in EEPROM, starting fresh");
     }
 
-    // Initialize hour tracking
-    voltage_state.hour_start_time = elapsed_ms;
+    // Initialize period tracking
+    voltage_state.period_start_time = elapsed_ms;
 
     let mut last_save_time = elapsed_ms;
     let mut last_saved_duration = voltage_state.total_hit_duration_ms;
     let mut last_saved_hit_count = voltage_state.total_hit_count;
     let mut last_left_state = false;
+    
+    // Sleep mode tracking
+    let mut last_activity_time = elapsed_ms;
+    let mut display_on = true;
 
     loop {
         buf.clear();
@@ -417,14 +433,24 @@ fn main() -> ! {
         button_state.update(left_pressed, right_pressed, middle_pressed);
         let (left_debounced, right_debounced, middle_debounced) = button_state.is_debounced(7); // 7 out of 10 samples
 
-        // Check for left button press to reset hour
+        // Check for any button activity
+        if left_pressed || right_pressed || middle_pressed {
+            last_activity_time = elapsed_ms;
+            if !display_on {
+                display_on = true;
+                display.init().unwrap(); // Re-initialize display
+                rprintln!("Display woken by button press");
+            }
+        }
+
+        // Check for left button press to reset period
         if left_debounced && !last_left_state {
-            voltage_state.reset_hour(elapsed_ms);
+            voltage_state.reset_period(elapsed_ms);
         }
         last_left_state = left_debounced;
 
-        // Check for hour reset
-        voltage_state.check_hour_reset(elapsed_ms);
+        // Check for period reset
+        voltage_state.check_period_reset(elapsed_ms);
 
         // Control coil based on limit
         if voltage_state.is_limit_reached() {
@@ -439,6 +465,16 @@ fn main() -> ! {
         // Update voltage state with new sample
         voltage_state.update(val);
         let hit_just_ended = voltage_state.check_hit(elapsed_ms);
+        
+        // Wake display on hit detection (high voltage)
+        if val > HIT_HIGH {
+            last_activity_time = elapsed_ms;
+            if !display_on {
+                display_on = true;
+                display.init().unwrap(); // Re-initialize display
+                rprintln!("Display woken by hit detection");
+            }
+        }
 
         // Save immediately when a hit ends
         if hit_just_ended {
@@ -459,13 +495,13 @@ fn main() -> ! {
         }
 
         // Format display with all info
-        // Line 1: Hour usage/limit and hit count
+        // Line 1: Period usage/limit and hit count
         write!(
             buf,
-            "H:{:.0}/{:.0}s #{}\n",
-            voltage_state.get_hour_duration_seconds(), // hour usage
-            HOURLY_LIMIT_MS as f32 / 1000.0,           // hour limit (60s)
-            voltage_state.get_hit_count(),             // total hits
+            "P:{:.0}/{:.0}s #{}\n",
+            voltage_state.get_period_duration_seconds(), // period usage
+            PERIOD_LIMIT_MS as f32 / 1000.0,            // period limit
+            voltage_state.get_hit_count(),               // total hits
         )
         .unwrap();
 
@@ -475,16 +511,19 @@ fn main() -> ! {
                 buf,
                 "HIT:{:.1}s R:{:.0}s",
                 voltage_state.get_current_duration_ms() as f32 / 1000.0, // current hit
-                voltage_state.get_hour_remaining_ms() as f32 / 1000.0,   // remaining
+                voltage_state.get_period_remaining_ms() as f32 / 1000.0, // remaining in period
             )
             .unwrap();
         } else if voltage_state.is_limit_reached() {
-            write!(buf, "LIMIT REACHED!").unwrap();
+            let time_until_reset_s = voltage_state.get_time_until_reset_ms(elapsed_ms) as f32 / 1000.0;
+            let minutes = (time_until_reset_s / 60.0) as u32;
+            let seconds = (time_until_reset_s % 60.0) as u32;
+            write!(buf, "WAIT {}:{:02}", minutes, seconds).unwrap();
         } else {
             write!(
                 buf,
                 "Ready R:{:.0}s",
-                voltage_state.get_hour_remaining_ms() as f32 / 1000.0, // remaining
+                voltage_state.get_period_remaining_ms() as f32 / 1000.0, // remaining
             )
             .unwrap();
         }
@@ -500,11 +539,19 @@ fn main() -> ! {
 
         // Wait for timer interrupt
         while timer.wait().is_ok() {
-            display.set_position(0, 0).unwrap();
-            display.write_str(&buf).unwrap(); // overwrites previous chars
-                                              // display.clear_buffer();      // no SPI traffic
-                                              // display.write_str(&buf);
-                                              // display.flush().unwrap();    // single SPI write
+            // Check if display should sleep
+            if elapsed_ms.wrapping_sub(last_activity_time) > DISPLAY_TIMEOUT_MS && display_on {
+                display_on = false;
+                display.clear().unwrap(); // Clear display before sleeping
+                rprintln!("Display entering sleep mode");
+            }
+            
+            // Only update display if it's on
+            if display_on {
+                display.set_position(0, 0).unwrap();
+                display.write_str(&buf).unwrap(); // overwrites previous chars
+            }
+            
             timer.start(60_u32.Hz());
             elapsed_ms = elapsed_ms.wrapping_add(16); // ~60Hz = ~16ms per frame
 
