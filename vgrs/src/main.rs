@@ -37,7 +37,7 @@ const HITTIME_OFFSET: u32 = 0x0002; // bytes (total hit duration)
 const HITCOUNT_OFFSET: u32 = 0x0006; // bytes (total hit count)
 
 // Time limit configuration
-const HOURLY_LIMIT_MS: u32 = 10_000; // 1 minute per hour (60 seconds * 1000ms)
+const HOURLY_LIMIT_MS: u32 = 3_000; // 1 minute per hour (60 seconds * 1000ms)
 const HOUR_MS: u32 = 3_600_000; // 1 hour in milliseconds
 
 // Button states
@@ -139,6 +139,18 @@ impl VoltageState {
             return false; // Not enough samples yet
         }
 
+        // Don't process hits if limit is reached
+        if self.is_limit_reached() {
+            // Force end any active hit
+            if self.hit_active {
+                self.hit_active = false;
+                self.hit_start_time = None;
+                self.current_hit_duration_ms = 0;
+                rprintln!("Hit forcibly ended due to limit");
+            }
+            return false;
+        }
+
         let over_threshold_count = self.samples.iter().filter(|&&val| val > HIT_HIGH).count();
 
         let under_threshold_count = self.samples.iter().filter(|&&val| val < HIT_LOW).count();
@@ -147,18 +159,34 @@ impl VoltageState {
 
         // Check if hit is starting
         if over_threshold_count >= OVER_DEBOUNCE && !self.hit_active {
-            self.hit_active = true;
-            self.hit_start_time = Some(current_time_ms);
-            self.current_hit_duration_ms = 0;
-            self.total_hit_count = self.total_hit_count.wrapping_add(1);
+            // Double-check limit before starting hit
+            if !self.is_limit_reached() {
+                self.hit_active = true;
+                self.hit_start_time = Some(current_time_ms);
+                self.current_hit_duration_ms = 0;
+                self.total_hit_count = self.total_hit_count.wrapping_add(1);
+            }
         }
         // Check if hit is ending
         else if under_threshold_count >= UNDER_DEBOUNCE && self.hit_active {
             self.hit_active = false;
             if let Some(start) = self.hit_start_time {
                 let duration = current_time_ms.wrapping_sub(start);
-                self.total_hit_duration_ms = self.total_hit_duration_ms.wrapping_add(duration);
-                self.hour_duration_ms = self.hour_duration_ms.wrapping_add(duration);
+
+                // Check if adding this duration would exceed limit
+                let new_hour_duration = self.hour_duration_ms.wrapping_add(duration);
+                if new_hour_duration > HOURLY_LIMIT_MS {
+                    // Only add up to the limit
+                    let allowed_duration = HOURLY_LIMIT_MS.saturating_sub(self.hour_duration_ms);
+                    self.total_hit_duration_ms =
+                        self.total_hit_duration_ms.wrapping_add(allowed_duration);
+                    self.hour_duration_ms = HOURLY_LIMIT_MS;
+                    rprintln!("Hit truncated to stay within limit");
+                } else {
+                    self.total_hit_duration_ms = self.total_hit_duration_ms.wrapping_add(duration);
+                    self.hour_duration_ms = new_hour_duration;
+                }
+
                 self.current_hit_duration_ms = 0;
                 hit_just_ended = true;
             }
@@ -168,6 +196,23 @@ impl VoltageState {
         else if self.hit_active {
             if let Some(start) = self.hit_start_time {
                 self.current_hit_duration_ms = current_time_ms.wrapping_sub(start);
+
+                // Check if we're about to exceed the limit
+                let projected_hour_duration = self
+                    .hour_duration_ms
+                    .wrapping_add(self.current_hit_duration_ms);
+                if projected_hour_duration >= HOURLY_LIMIT_MS {
+                    // Force end the hit
+                    self.hit_active = false;
+                    let allowed_duration = HOURLY_LIMIT_MS.saturating_sub(self.hour_duration_ms);
+                    self.total_hit_duration_ms =
+                        self.total_hit_duration_ms.wrapping_add(allowed_duration);
+                    self.hour_duration_ms = HOURLY_LIMIT_MS;
+                    self.current_hit_duration_ms = 0;
+                    self.hit_start_time = None;
+                    hit_just_ended = true;
+                    rprintln!("Hit forcibly ended - limit reached during hit");
+                }
             }
         }
 
@@ -383,9 +428,9 @@ fn main() -> ! {
 
         // Control coil based on limit
         if voltage_state.is_limit_reached() {
-            coil_en.set_low().unwrap(); // disable coil
+            coil_en.set_low().unwrap(); // disable coil (low = disabled)
         } else {
-            coil_en.set_high().unwrap(); // enable coil
+            coil_en.set_high().unwrap(); // enable coil (high = enabled)
         }
 
         use core::fmt::Write;
