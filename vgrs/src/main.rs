@@ -17,15 +17,7 @@ use ssd1306::{
     Ssd1306,
 };
 use stm32l0xx_hal::pac::FLASH;
-use stm32l0xx_hal::{
-    adc::Adc,
-    delay::Delay,
-    pac,
-    prelude::*,
-    rcc::Config,
-    spi::Spi,
-    timer::Timer,
-};
+use stm32l0xx_hal::{adc::Adc, delay::Delay, pac, prelude::*, rcc::Config, spi::Spi, timer::Timer};
 
 // Button state buffer size
 const BUTTON_HISTORY_SIZE: usize = 10;
@@ -41,7 +33,12 @@ const UNDER_DEBOUNCE: usize = 3;
 // Add EEPROM support for persistent storage
 // STM32L072 has 6KB data EEPROM starting at 0x08080000
 const EEPROM_BASE: u32 = 0x0808_0000;
-const HITTIME_OFFSET: u32 = 0x0002; // bytes
+const HITTIME_OFFSET: u32 = 0x0002; // bytes (total hit duration)
+const HITCOUNT_OFFSET: u32 = 0x0006; // bytes (total hit count)
+
+// Time limit configuration
+const HOURLY_LIMIT_MS: u32 = 10_000; // 1 minute per hour (60 seconds * 1000ms)
+const HOUR_MS: u32 = 3_600_000; // 1 hour in milliseconds
 
 // Button states
 struct ButtonState {
@@ -59,6 +56,10 @@ struct VoltageState {
     hit_start_time: Option<u32>,
     total_hit_duration_ms: u32,
     current_hit_duration_ms: u32,
+    total_hit_count: u32,
+    // Hour tracking
+    hour_start_time: u32,
+    hour_duration_ms: u32,
 }
 
 impl ButtonState {
@@ -118,6 +119,9 @@ impl VoltageState {
             hit_start_time: None,
             total_hit_duration_ms: 0,
             current_hit_duration_ms: 0,
+            total_hit_count: 0,
+            hour_start_time: 0,
+            hour_duration_ms: 0,
         }
     }
 
@@ -146,6 +150,7 @@ impl VoltageState {
             self.hit_active = true;
             self.hit_start_time = Some(current_time_ms);
             self.current_hit_duration_ms = 0;
+            self.total_hit_count = self.total_hit_count.wrapping_add(1);
         }
         // Check if hit is ending
         else if under_threshold_count >= UNDER_DEBOUNCE && self.hit_active {
@@ -153,6 +158,7 @@ impl VoltageState {
             if let Some(start) = self.hit_start_time {
                 let duration = current_time_ms.wrapping_sub(start);
                 self.total_hit_duration_ms = self.total_hit_duration_ms.wrapping_add(duration);
+                self.hour_duration_ms = self.hour_duration_ms.wrapping_add(duration);
                 self.current_hit_duration_ms = 0;
                 hit_just_ended = true;
             }
@@ -178,6 +184,41 @@ impl VoltageState {
 
     fn is_hitting(&self) -> bool {
         self.hit_active
+    }
+
+    fn get_hit_count(&self) -> u32 {
+        self.total_hit_count
+    }
+
+    fn check_hour_reset(&mut self, current_time_ms: u32) {
+        // Check if an hour has passed
+        if current_time_ms.wrapping_sub(self.hour_start_time) >= HOUR_MS {
+            self.hour_start_time = current_time_ms;
+            self.hour_duration_ms = 0;
+            rprintln!("Hour reset - new hour started");
+        }
+    }
+
+    fn reset_hour(&mut self, current_time_ms: u32) {
+        self.hour_start_time = current_time_ms;
+        self.hour_duration_ms = 0;
+        rprintln!("Hour manually reset");
+    }
+
+    fn get_hour_remaining_ms(&self) -> u32 {
+        if self.hour_duration_ms >= HOURLY_LIMIT_MS {
+            0
+        } else {
+            HOURLY_LIMIT_MS - self.hour_duration_ms
+        }
+    }
+
+    fn is_limit_reached(&self) -> bool {
+        self.hour_duration_ms >= HOURLY_LIMIT_MS
+    }
+
+    fn get_hour_duration_seconds(&self) -> f32 {
+        self.hour_duration_ms as f32 / 1000.0
     }
 }
 
@@ -305,8 +346,22 @@ fn main() -> ! {
         rprintln!("No saved hit duration found in EEPROM, starting fresh");
     }
 
+    // Load saved hit count from EEPROM
+    let saved_hit_count = read_word(HITCOUNT_OFFSET);
+    if saved_hit_count != 0xFFFF_FFFF && saved_hit_count != 0 {
+        voltage_state.total_hit_count = saved_hit_count;
+        rprintln!("Loaded hit count from EEPROM: {}", saved_hit_count);
+    } else {
+        rprintln!("No saved hit count found in EEPROM, starting fresh");
+    }
+
+    // Initialize hour tracking
+    voltage_state.hour_start_time = elapsed_ms;
+
     let mut last_save_time = elapsed_ms;
     let mut last_saved_duration = voltage_state.total_hit_duration_ms;
+    let mut last_saved_hit_count = voltage_state.total_hit_count;
+    let mut last_left_state = false;
 
     loop {
         buf.clear();
@@ -316,6 +371,22 @@ fn main() -> ! {
         let middle_pressed = btn_middle.is_high().unwrap();
         button_state.update(left_pressed, right_pressed, middle_pressed);
         let (left_debounced, right_debounced, middle_debounced) = button_state.is_debounced(7); // 7 out of 10 samples
+
+        // Check for left button press to reset hour
+        if left_debounced && !last_left_state {
+            voltage_state.reset_hour(elapsed_ms);
+        }
+        last_left_state = left_debounced;
+
+        // Check for hour reset
+        voltage_state.check_hour_reset(elapsed_ms);
+
+        // Control coil based on limit
+        if voltage_state.is_limit_reached() {
+            coil_en.set_low().unwrap(); // disable coil
+        } else {
+            coil_en.set_high().unwrap(); // enable coil
+        }
 
         use core::fmt::Write;
         let val: u16 = adc.read(&mut an_in).unwrap();
@@ -331,35 +402,56 @@ fn main() -> ! {
                 HITTIME_OFFSET,
                 voltage_state.total_hit_duration_ms,
             );
+            write_word(&dp.FLASH, HITCOUNT_OFFSET, voltage_state.total_hit_count);
             last_saved_duration = voltage_state.total_hit_duration_ms;
+            last_saved_hit_count = voltage_state.total_hit_count;
             rprintln!(
-                "Hit ended - saved duration to EEPROM: {} ms ({:.1} s)",
+                "Hit ended - saved to EEPROM: {} ms ({:.1} s), count: {}",
                 voltage_state.total_hit_duration_ms,
-                voltage_state.get_total_duration_seconds()
+                voltage_state.get_total_duration_seconds(),
+                voltage_state.total_hit_count
             );
         }
 
-        // Format display to avoid wrapping
+        // Format display with all info
+        // Line 1: Hour usage/limit and hit count
         write!(
             buf,
-            "V:{:3} T:{:.1}s\n[{}{}{}] ",
-            val,                                        // voltage (3 digits)
-            voltage_state.get_total_duration_seconds(), // total time
-            if left_debounced { "L" } else { "-" },
-            if middle_debounced { "M" } else { "-" },
-            if right_debounced { "R" } else { "-" },
+            "H:{:.0}/{:.0}s #{}\n",
+            voltage_state.get_hour_duration_seconds(), // hour usage
+            HOURLY_LIMIT_MS as f32 / 1000.0,           // hour limit (60s)
+            voltage_state.get_hit_count(),             // total hits
         )
         .unwrap();
 
-        // Add current hit indicator
+        // Line 2: Current status and remaining time
         if voltage_state.is_hitting() {
             write!(
                 buf,
-                "HIT:{:.1}s",
-                voltage_state.get_current_duration_ms() as f32 / 1000.0
+                "HIT:{:.1}s R:{:.0}s",
+                voltage_state.get_current_duration_ms() as f32 / 1000.0, // current hit
+                voltage_state.get_hour_remaining_ms() as f32 / 1000.0,   // remaining
+            )
+            .unwrap();
+        } else if voltage_state.is_limit_reached() {
+            write!(buf, "LIMIT REACHED!").unwrap();
+        } else {
+            write!(
+                buf,
+                "Ready R:{:.0}s",
+                voltage_state.get_hour_remaining_ms() as f32 / 1000.0, // remaining
             )
             .unwrap();
         }
+
+        // Line 3: Total time and voltage
+        write!(
+            buf,
+            "\nT:{:.1}s V:{}",
+            voltage_state.get_total_duration_seconds(), // total time all-time
+            val,                                        // voltage
+        )
+        .unwrap();
 
         // Wait for timer interrupt
         while timer.wait().is_ok() {
@@ -373,6 +465,8 @@ fn main() -> ! {
 
             // Save to EEPROM every 10 seconds if value changed
             if elapsed_ms.wrapping_sub(last_save_time) > 10000 {
+                let mut saved_something = false;
+
                 if voltage_state.total_hit_duration_ms != last_saved_duration {
                     write_word(
                         &dp.FLASH,
@@ -380,12 +474,24 @@ fn main() -> ! {
                         voltage_state.total_hit_duration_ms,
                     );
                     last_saved_duration = voltage_state.total_hit_duration_ms;
+                    saved_something = true;
+                }
+
+                if voltage_state.total_hit_count != last_saved_hit_count {
+                    write_word(&dp.FLASH, HITCOUNT_OFFSET, voltage_state.total_hit_count);
+                    last_saved_hit_count = voltage_state.total_hit_count;
+                    saved_something = true;
+                }
+
+                if saved_something {
                     rprintln!(
-                        "Saved hit duration to EEPROM: {} ms ({:.1} s)",
+                        "Saved to EEPROM: {} ms ({:.1} s), {} hits",
                         voltage_state.total_hit_duration_ms,
-                        voltage_state.get_total_duration_seconds()
+                        voltage_state.get_total_duration_seconds(),
+                        voltage_state.total_hit_count
                     );
                 }
+
                 last_save_time = elapsed_ms;
             }
 
