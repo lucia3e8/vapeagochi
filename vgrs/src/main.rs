@@ -23,12 +23,12 @@ use stm32l0xx_hal::{adc::Adc, delay::Delay, pac, prelude::*, rcc::Config, spi::S
 const BUTTON_HISTORY_SIZE: usize = 10;
 const VOLTAGE_HISTORY_SIZE: usize = 10;
 
-const HIT_HIGH: u16 = 140;
-const HIT_LOW: u16 = 120;
+const HIT_HIGH: u16 = 120;  // Start hit when voltage goes above 120 (idle is ~62, hit is ~146)
+const HIT_LOW: u16 = 80;    // End hit when voltage drops below 80
 
 // how many consecutive samples above/below to trigger/reset
-const OVER_DEBOUNCE: usize = 5;
-const UNDER_DEBOUNCE: usize = 3;
+const OVER_DEBOUNCE: usize = 8;  // Need 8 out of 10 samples above threshold
+const UNDER_DEBOUNCE: usize = 8; // Need 8 out of 10 samples below threshold
 
 // Add EEPROM support for persistent storage
 // STM32L072 has 6KB data EEPROM starting at 0x08080000
@@ -142,18 +142,6 @@ impl VoltageState {
             return false; // Not enough samples yet
         }
 
-        // Don't process hits if limit is reached
-        if self.is_limit_reached() {
-            // Force end any active hit
-            if self.hit_active {
-                self.hit_active = false;
-                self.hit_start_time = None;
-                self.current_hit_duration_ms = 0;
-                rprintln!("Hit forcibly ended due to limit");
-            }
-            return false;
-        }
-
         let over_threshold_count = self.samples.iter().filter(|&&val| val > HIT_HIGH).count();
 
         let under_threshold_count = self.samples.iter().filter(|&&val| val < HIT_LOW).count();
@@ -162,12 +150,13 @@ impl VoltageState {
 
         // Check if hit is starting
         if over_threshold_count >= OVER_DEBOUNCE && !self.hit_active {
-            // Double-check limit before starting hit
-            if !self.is_limit_reached() {
+            // Only start hit if we haven't reached the limit yet
+            if self.period_duration_ms < PERIOD_LIMIT_MS {
                 self.hit_active = true;
                 self.hit_start_time = Some(current_time_ms);
                 self.current_hit_duration_ms = 0;
                 self.total_hit_count = self.total_hit_count.wrapping_add(1);
+                rprintln!("Hit started");
             }
         }
         // Check if hit is ending
@@ -204,6 +193,7 @@ impl VoltageState {
                 let projected_period_duration = self
                     .period_duration_ms
                     .wrapping_add(self.current_hit_duration_ms);
+                    
                 if projected_period_duration >= PERIOD_LIMIT_MS {
                     // Force end the hit
                     self.hit_active = false;
@@ -241,6 +231,26 @@ impl VoltageState {
     fn check_period_reset(&mut self, current_time_ms: u32) {
         // Check if a period has passed
         if current_time_ms.wrapping_sub(self.period_start_time) >= PERIOD_DURATION_MS {
+            // If a hit is active during reset, we need to handle it properly
+            if self.hit_active {
+                if let Some(start) = self.hit_start_time {
+                    // Calculate duration up to the period boundary
+                    let duration_in_old_period = self.period_start_time.wrapping_add(PERIOD_DURATION_MS).wrapping_sub(start);
+                    
+                    // Add the duration from the old period to totals
+                    let new_period_duration = self.period_duration_ms.wrapping_add(duration_in_old_period);
+                    if new_period_duration > PERIOD_LIMIT_MS {
+                        let allowed_duration = PERIOD_LIMIT_MS.saturating_sub(self.period_duration_ms);
+                        self.total_hit_duration_ms = self.total_hit_duration_ms.wrapping_add(allowed_duration);
+                    } else {
+                        self.total_hit_duration_ms = self.total_hit_duration_ms.wrapping_add(duration_in_old_period);
+                    }
+                    
+                    // Reset hit start time to beginning of new period
+                    self.hit_start_time = Some(self.period_start_time.wrapping_add(PERIOD_DURATION_MS));
+                }
+            }
+            
             self.period_start_time = current_time_ms;
             self.period_duration_ms = 0;
             rprintln!("Period reset - new period started");
@@ -248,25 +258,63 @@ impl VoltageState {
     }
 
     fn reset_period(&mut self, current_time_ms: u32) {
+        // If a hit is active during manual reset, handle it properly
+        if self.hit_active {
+            if let Some(start) = self.hit_start_time {
+                // Calculate and add duration up to reset point
+                let duration = current_time_ms.wrapping_sub(start);
+                let new_period_duration = self.period_duration_ms.wrapping_add(duration);
+                
+                if new_period_duration > PERIOD_LIMIT_MS {
+                    let allowed_duration = PERIOD_LIMIT_MS.saturating_sub(self.period_duration_ms);
+                    self.total_hit_duration_ms = self.total_hit_duration_ms.wrapping_add(allowed_duration);
+                } else {
+                    self.total_hit_duration_ms = self.total_hit_duration_ms.wrapping_add(duration);
+                }
+                
+                // Reset hit start time to now
+                self.hit_start_time = Some(current_time_ms);
+            }
+        }
+        
         self.period_start_time = current_time_ms;
         self.period_duration_ms = 0;
         rprintln!("Period manually reset");
     }
 
     fn get_period_remaining_ms(&self) -> u32 {
-        if self.period_duration_ms >= PERIOD_LIMIT_MS {
+        // Include current hit duration if actively hitting
+        let total_period_ms = if self.hit_active {
+            self.period_duration_ms + self.current_hit_duration_ms
+        } else {
+            self.period_duration_ms
+        };
+        
+        if total_period_ms >= PERIOD_LIMIT_MS {
             0
         } else {
-            PERIOD_LIMIT_MS - self.period_duration_ms
+            PERIOD_LIMIT_MS - total_period_ms
         }
     }
 
     fn is_limit_reached(&self) -> bool {
-        self.period_duration_ms >= PERIOD_LIMIT_MS
+        // Include current hit duration if actively hitting
+        let total_period_ms = if self.hit_active {
+            self.period_duration_ms + self.current_hit_duration_ms
+        } else {
+            self.period_duration_ms
+        };
+        total_period_ms >= PERIOD_LIMIT_MS
     }
 
     fn get_period_duration_seconds(&self) -> f32 {
-        self.period_duration_ms as f32 / 1000.0
+        // Include current hit duration if actively hitting
+        let total_period_ms = if self.hit_active {
+            self.period_duration_ms + self.current_hit_duration_ms
+        } else {
+            self.period_duration_ms
+        };
+        total_period_ms as f32 / 1000.0
     }
     
     fn get_time_until_reset_ms(&self, current_time_ms: u32) -> u32 {
@@ -515,9 +563,17 @@ fn main() -> ! {
             )
             .unwrap();
         } else if voltage_state.is_limit_reached() {
-            let time_until_reset_s = voltage_state.get_time_until_reset_ms(elapsed_ms) as f32 / 1000.0;
+            let time_until_reset_ms = voltage_state.get_time_until_reset_ms(elapsed_ms);
+            let time_until_reset_s = time_until_reset_ms as f32 / 1000.0;
             let minutes = (time_until_reset_s / 60.0) as u32;
             let seconds = (time_until_reset_s % 60.0) as u32;
+            
+            // Debug output for unusual values
+            if time_until_reset_s > 180.0 || (minutes > 1 && seconds > 10) {
+                rprintln!("Reset calc: elapsed_ms={}, period_start={}, time_until_reset_ms={}, time_until_reset_s={:.1}, minutes={}, seconds={}", 
+                    elapsed_ms, voltage_state.period_start_time, time_until_reset_ms, time_until_reset_s, minutes, seconds);
+            }
+            
             write!(buf, "WAIT {}:{:02}", minutes, seconds).unwrap();
         } else {
             write!(
