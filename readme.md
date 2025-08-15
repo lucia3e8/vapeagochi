@@ -1,16 +1,29 @@
 # tamagotchi that dies if you stop vaping
-...has been rewritten in Rust.
+...has been rewritten in Rust. we also made it die if you _keep_ vaping.
 
 ## dirs
 ```
 .
-├── assets
+├── assets # animation sprites etc
+├── case # fusion360 files for 3d-printed case
 ├── ee # kicad, components, assembly
-├── readme.txt
+├── readme.txt # you are here
 ├── scripts # one offs
-├── vg2 # old C++ stm32ide build
+├── vg2 # vestigial C++ stm32ide build
 └── vgrs # new rust build <- USE THIS ONE
 ```
+
+# Hardware
+## Case
+Initially we used a bc5000 vape because it's small and cute.
+Right now bc5000 is too small to fit all the hardware, so we use a gimi30k instead.
+
+![GIMI 30K Vape](https://image.vapesourcing.com/imagecache/800/images/202406/GIMI-30K.jpg)
+![BC5000 Vape](https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTH01xDzv0q38MxwAm3pfZYNTuByK6Gy-BocA&s)
+
+Eventually I want to target the bc5000 because it's cuter but I'd have to redesign the PCB
+
+![Case Diagram](case/diagram.png)
 
 ## Pinout
 
@@ -34,9 +47,11 @@
 ```
 By default, the vape's heating coil is disabled via a MOSFET. Pull `PB11 (Coil Enable)` high to allow the coil to turn on when user hits the vape.
 When user tries to hit the vape, `PA4 (Coil Input)` will go high, regardless of `PB11` state.
+
+# Software
 ## Building
 
-Either do `nix-shell`, or manually install `cargo` with `thumbv6m-none-eabi` target and `probe-rs`.
+Either use `nix-shell`, or manually install `cargo` with `thumbv6m-none-eabi` target and `probe-rs`.
 ```
 cd vgrs
 nix-shell
